@@ -175,6 +175,9 @@ EOF
     if ! systemctl is-active --quiet coturn; then
         error_exit "Coturn service is not running"
     fi
+    log "INFO" "Opening firewall ports for Coturn"
+    sudo ufw allow 3478/udp || error_exit "Failed to open port 3478"
+    sudo ufw allow 3478/tcp || error_exit "Failed to open port 3478"
     log "INFO" "Coturn configured and started successfully"
 }
 
