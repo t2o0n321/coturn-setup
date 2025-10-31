@@ -51,16 +51,13 @@ log() {
 }
 
 error_exit() {
-    log "ERROR" "
-"
+    log "ERROR" "$1"
     exit 1
 }
 
 
-
 confirm() {
-    local prompt_message="
-"
+    local prompt_message="$1"
     local log_message="$2"
 
     local response
