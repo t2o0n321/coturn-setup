@@ -61,7 +61,9 @@ setup_ssl() {
     log "INFO" "Installing certbot and requesting SSL certificate for $domain"
     sudo apt update
     sudo apt install certbot -y || error_exit "Failed to install certbot"
+    sudo ufw allow 80/tcp || error_exit "Failed to open port 80"
     sudo certbot certonly --standalone -d "$domain" --non-interactive --agree-tos --register-unsafely-without-email || error_exit "Failed to obtain SSL certificate"
+    sudo ufw delete allow 80/tcp || error_exit "Failed to close port 80"
     sudo systemctl disable certbot.timer || error_exit "Failed to disable default certbot timer" # Certbot's default timer may conflict the custom timer
     log "INFO" "SSL certificate obtained for $domain"
 }
