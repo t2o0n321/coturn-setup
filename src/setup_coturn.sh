@@ -56,7 +56,7 @@ main() {
     local domain=""
     # Parse arguments
     while [[ $# -gt 0 ]]; do
-        case  in
+        case $1 in
             --domain | -d) 
                 domain="$2"
                 shift 2

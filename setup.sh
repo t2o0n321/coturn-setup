@@ -14,6 +14,7 @@ main() {
     local arts_title_file="${SCRIPT_DIR}/arts.txt"
     if [ -f "$arts_title_file" ]; then
         cat "$arts_title_file"
+        echo ""
     else
         log "WARNING" "arts.txt not found"
     fi
