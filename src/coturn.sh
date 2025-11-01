@@ -55,7 +55,7 @@ EOF
     # Start Coturn
     sudo systemctl start coturn || error_exit "Failed to start Coturn"
     sudo systemctl enable coturn || error_exit "Failed to enable Coturn"
-    if ! systemctl is-active --quiet coturn;
+    if ! systemctl is-active --quiet coturn; then
         error_exit "Coturn service is not running"
     fi
     log "INFO" "Opening firewall ports for Coturn"
