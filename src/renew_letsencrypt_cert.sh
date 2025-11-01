@@ -31,17 +31,6 @@ fi
 echo "Renewing Let's Encrypt certificate for $domain..."
 sudo certbot renew --non-interactive --quiet || error_exit "Failed to renew SSL certificate"
 
-# Update Openfire Keystore
-tmp_dir=$(mktemp -d)
-cd "$tmp_dir"
-sudo cp "/etc/letsencrypt/live/$domain/fullchain.pem" fullchain.pem || error_exit "Failed to copy fullchain.pem"
-sudo cp "/etc/letsencrypt/live/$domain/privkey.pem" privkey.pem || error_exit "Failed to copy privkey.pem"
-sudo openssl pkcs12 -export -in fullchain.pem -inkey privkey.pem -out openfire.p12 -name openfire -password pass:changeit || error_exit "Failed to export to pkcs12"
-sudo keytool -delete -alias openfire -keystore /usr/share/openfire/resources/security/keystore -storepass changeit || error_exit "Failed to delete old certificate"
-sudo keytool -importkeystore -srckeystore openfire.p12 -srcstoretype PKCS12 -destkeystore /usr/share/openfire/resources/security/keystore -deststoretype JKS -srcstorepass changeit -deststorepass changeit || error_exit "Failed to import new certificate"
-cd ..
-rm -rf "$tmp_dir"
-
 # Update coturn certificates
 sudo cp "/etc/letsencrypt/live/$domain/fullchain.pem" /etc/coturn/fullchain.pem || error_exit "Failed to copy fullchain.pem for coturn"
 sudo cp "/etc/letsencrypt/live/$domain/privkey.pem" /etc/coturn/privkey.pem || error_exit "Failed to copy privkey.pem for coturn"

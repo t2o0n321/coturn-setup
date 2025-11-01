@@ -17,17 +17,11 @@ sudo touch "$LOG_FILE" || error_exit "Failed to create $LOG_FILE"
 sudo chmod 600 "$LOG_FILE" || error_exit "Failed to set permissions on $LOG_FILE"
 sudo chown root:root "$LOG_FILE" || error_exit "Failed to set ownership on $LOG_FILE"
 
-declare -r COTURN_USERNAME="coturnadm"
+declare -r COTURN_USERNAME=$(openssl rand -base64 8)
 declare -r COTURN_PWD=$(openssl rand -base64 12)
 declare -r COTURN_CONFIG="/etc/turnserver.conf"
 declare -r COTURN_DEFAULT="/etc/default/coturn"
 declare -r COTURN_CERT_DIR="/etc/coturn"
-
-declare -r RENEW_SSL_CERT_SH="$SCRIPT_DIR/renew_letsencrypt_cert.sh"
-declare -r RENEW_SSL_SERVICE_NAME="renew-ssl-cert"
-declare -r RENEW_SSL_SERVICE_FILE="/etc/systemd/system/${RENEW_SSL_SERVICE_NAME}.service"
-declare -r RENEW_SSL_SERVICE_TIMER_FILE="/etc/systemd/system/${RENEW_SSL_SERVICE_NAME}.timer"
-declare -r RENEW_SSL_SERVICE_TIMER_CALENDAR="*-*-* 03:00:00"
 
 # --------------------------------------------------
 # Common Functions
@@ -47,7 +41,7 @@ log() {
     local level="$1"
     local message="$2"
     echo "$(get_timestamp) [$level] $message" | tee -a "$LOG_FILE"
-    logger -t "install_openfire" "[$level] $message"
+    logger -t "coturn_setup" "[$level] $message"
 }
 
 error_exit() {
