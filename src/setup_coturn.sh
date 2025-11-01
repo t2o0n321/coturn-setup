@@ -9,7 +9,7 @@ source "$(dirname "${BASH_SOURCE[0]}")/common.sh"
 # Functions
 # --------------------------------------------------------
 check_domain() {
-    local domain=""
+    local domain="$1"
     log "INFO" "Checking domain resolution for $domain"
     local ip
     ip=$(nslookup "$domain" | grep 'Address:' | tail -n1 | awk '{print $2}' || echo "")
@@ -29,7 +29,7 @@ check_domain() {
 }
 
 display_instructions() {
-    local domain=""
+    local domain=$1
     local prompt_message=$(cat << EOF
 * Coturn is now running.
 * 
