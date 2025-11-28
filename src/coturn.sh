@@ -87,10 +87,10 @@ main() {
         esac
     done
     if [ -z "$domain" ]; then
-        error_exit "Domain name is required. Use 'sudo ./coturn.sh --domain|-d <your_domain>'
+        error_exit "Domain name is required. Use 'sudo ./coturn.sh --domain|-d <your_domain>'"
     fi
     if [ -z "$machine_ip" ]; then
-        error_exit "Machine IP is required. Use 'sudo ./coturn.sh --ip|-i <your_machine_ip>'
+        error_exit "Machine IP is required. Use 'sudo ./coturn.sh --ip|-i <your_machine_ip>'"
     fi
 
     setup_coturn "$domain" "$machine_ip"

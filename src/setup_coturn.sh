@@ -37,16 +37,16 @@ display_instructions() {
 * - username=$COTURN_USERNAME
 * - password=$COTURN_PWD
 * 
-* Do you want to save these informations in current folder($PROJECT_ROOT_DIR)? (Yn)
+* Do you want to save this information in current folder ($PROJECT_ROOT_DIR)? (Yn)
 EOF
 )
     local log_message="Prompting user instructions"
 
     if confirm "$prompt_message" "$log_message"; then
         local info_file="$PROJECT_ROOT_DIR/coturn_info.txt"
-        log "INFO" "Saving informations to $info_file"
+        log "INFO" "Saving information to $info_file"
         echo "$prompt_message" | sudo tee "$info_file" > /dev/null || error_exit "Failed to save coturn_info.txt"
-        log "INFO" "Informations saved to $info_file successfully"
+        log "INFO" "Information saved to $info_file successfully"
     fi
     log "INFO" "Installation and configuration completed"
 }
@@ -62,13 +62,16 @@ main() {
                 shift 2
                 ;; 
             *)
-                error_exit "Unknown argument: "
+                error_exit "Unknown argument: $1"
                 ;; 
         esac
     done
     if [ -z "$domain" ]; then
         error_exit "Domain name is required. Use 'sudo ./setup_coturn.sh --domain|-d <your_domain>'"
     fi
+
+    # Propagate credentials to child scripts so the values stay consistent
+    export COTURN_USERNAME COTURN_PWD
 
     local machine_ip=$(check_domain "$domain")
     bash "${SCRIPT_DIR}/ssl.sh" --domain "$domain"
@@ -77,4 +80,3 @@ main() {
 }
 
 main "$@"
-

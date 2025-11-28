@@ -17,8 +17,8 @@ sudo touch "$LOG_FILE" || error_exit "Failed to create $LOG_FILE"
 sudo chmod 600 "$LOG_FILE" || error_exit "Failed to set permissions on $LOG_FILE"
 sudo chown root:root "$LOG_FILE" || error_exit "Failed to set ownership on $LOG_FILE"
 
-declare -r COTURN_USERNAME=$(openssl rand -base64 8)
-declare -r COTURN_PWD=$(openssl rand -base64 12)
+readonly COTURN_USERNAME="${COTURN_USERNAME:-$(openssl rand -base64 12)}"
+readonly COTURN_PWD="${COTURN_PWD:-$(openssl rand -base64 18)}"
 declare -r COTURN_CONFIG="/etc/turnserver.conf"
 declare -r COTURN_DEFAULT="/etc/default/coturn"
 declare -r COTURN_CERT_DIR="/etc/coturn"
@@ -40,7 +40,8 @@ check_permission() {
 log() {
     local level="$1"
     local message="$2"
-    echo "$(get_timestamp) [$level] $message" | tee -a "$LOG_FILE"
+    # Write logs to stderr so command substitutions do not capture them
+    echo "$(get_timestamp) [$level] $message" | tee -a "$LOG_FILE" >&2
     logger -t "coturn_setup" "[$level] $message"
 }
 
