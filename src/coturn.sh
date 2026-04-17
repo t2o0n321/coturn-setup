@@ -39,7 +39,6 @@ cipher-list="DEFAULT"
 log-file=/var/log/turnserver.log
 simple-log
 verbose
-TURNSERVER_ENABLED=1
 EOF
     sudo chmod 640 "$COTURN_CONFIG" || error_exit "Failed to set permissions on turnserver.conf"
     sudo chown root:root "$COTURN_CONFIG" || error_exit "Failed to set ownership on turnserver.conf"
