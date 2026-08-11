@@ -43,6 +43,11 @@ setup_renew_ssl_cert() {
     local renew_ssl_service_timer_file="/etc/systemd/system/${renew_ssl_service_name}.timer"
     local renew_ssl_service_timer_calendar="*-*-* 03:00:00"
 
+    # NOTE: the service below deliberately has no RemainAfterExit=yes. With it, the
+    # unit stays "active (exited)" once it has run, and systemd will not trigger a
+    # timer whose unit is already active -- so the renewal fired exactly once, ever,
+    # and the timer's NextElapseUSecRealtime went empty. Certificates then expired
+    # silently. Do not add it back.
     local renew_ssl_service=$(cat << EOF
 [Unit]
 Description=SSL Certificate Renewal Service
@@ -51,7 +56,6 @@ After=network-online.target
 [Service]
 Type=oneshot
 ExecStart=$renew_service_script_path $domain
-RemainAfterExit=yes
 EOF
 )
     echo "$renew_ssl_service" | sudo tee "$renew_ssl_service_file" > /dev/null \
