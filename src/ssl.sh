@@ -13,9 +13,25 @@ setup_ssl() {
     log "INFO" "Installing certbot and requesting SSL certificate for $domain"
     sudo apt update
     sudo apt install certbot -y || error_exit "Failed to install certbot"
-    sudo ufw allow 80/tcp || error_exit "Failed to open port 80"
+    # Only close 80 again if this function is what opened it. certbot --standalone
+    # needs it, but a caller may already have opened it deliberately -- syWatcher
+    # lists 80/tcp among the ports it opens for Caddy, which serves the HTTP
+    # redirect and can renew over HTTP-01. Deleting it unconditionally took that
+    # rule away and left http:// unreachable from outside, with nothing to say so:
+    # the certificate still arrived, because Caddy fell back to TLS-ALPN on 443.
+    local port80_was_open=0
+    if sudo ufw status | grep -qE '^80/tcp'; then
+        port80_was_open=1
+        log "INFO" "Port 80 is already open; leaving it as it was found"
+    else
+        sudo ufw allow 80/tcp || error_exit "Failed to open port 80"
+    fi
+
     sudo certbot certonly --standalone -d "$domain" --non-interactive --agree-tos --register-unsafely-without-email || error_exit "Failed to obtain SSL certificate"
-    sudo ufw delete allow 80/tcp || error_exit "Failed to close port 80"
+
+    if [ "$port80_was_open" -eq 0 ]; then
+        sudo ufw delete allow 80/tcp || error_exit "Failed to close port 80"
+    fi
     sudo systemctl disable certbot.timer || error_exit "Failed to disable default certbot timer" # Certbot's default timer may conflict the custom timer
     log "INFO" "SSL certificate obtained for $domain"
 }
