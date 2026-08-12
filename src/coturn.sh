@@ -72,8 +72,19 @@ log-file=/var/log/turnserver.log
 simple-log
 verbose
 EOF
+    # root:turnserver, not root:root. turnserver reads this file after dropping
+    # privileges; owned root:root at 0640 it cannot, and coturn does not treat that
+    # as an error -- it silently falls back to its built-in defaults. The result
+    # looks like a working server: 3478 and 3479 come up, because those are the
+    # defaults, and 5349 never does, because the certificate lines were in the file
+    # it could not read. This is what dpkg-statoverride records for the file too:
+    #
+    #   $ dpkg-statoverride --list /etc/turnserver.conf
+    #   root turnserver 640 /etc/turnserver.conf
+    #
+    # root still owns it, so coturn can read its configuration but not rewrite it.
     sudo chmod 640 "$COTURN_CONFIG" || error_exit "Failed to set permissions on turnserver.conf"
-    sudo chown root:root "$COTURN_CONFIG" || error_exit "Failed to set ownership on turnserver.conf"
+    sudo chown "root:$COTURN_GROUP" "$COTURN_CONFIG" || error_exit "Failed to set ownership on turnserver.conf"
 
     # Enable Coturn in default config
     log "INFO" "Enabling Coturn service"
