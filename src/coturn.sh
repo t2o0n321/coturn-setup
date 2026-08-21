@@ -8,9 +8,35 @@ source "$(dirname "${BASH_SOURCE[0]}")/common.sh"
 # --------------------------------------------------------
 # Functions
 # --------------------------------------------------------
+# Puts one certificate file in place with the ownership turnserver needs.
+#
+# Tolerates being handed the file it is already installing to: a caller may point
+# --cert straight at $COTURN_CERT_DIR, and `install` refuses when source and
+# destination are the same file. Ownership and mode still get fixed, which is the
+# part that matters.
+install_cert_file() {
+    local src="$1"
+    local dst="$2"
+    local mode="$3"
+    local label="$4"
+
+    [ -r "$src" ] || error_exit "Cannot read $label at $src"
+
+    if [ "$src" -ef "$dst" ]; then
+        sudo chown "root:$COTURN_GROUP" "$dst" || error_exit "Failed to set ownership on $label"
+        sudo chmod "$mode" "$dst" || error_exit "Failed to set permissions on $label"
+        return 0
+    fi
+
+    sudo install -o root -g "$COTURN_GROUP" -m "$mode" "$src" "$dst" \
+        || error_exit "Failed to install $label for Coturn"
+}
+
 setup_coturn() {
     local domain="$1"
     local machine_ip="$2"
+    local cert_src="${3:-}"
+    local key_src="${4:-}"
     log "INFO" "Installing and configuring Coturn"
     sudo apt update
     sudo apt install coturn -y || error_exit "Failed to install Coturn"
@@ -18,20 +44,22 @@ setup_coturn() {
 
     local lower_case_domain=$(echo "$domain" | tr '[:upper:]' '[:lower:]')
 
+    # Where the certificate comes from. The default is the one ssl.sh just obtained
+    # with certbot, which is what every caller got before these two options existed.
+    # A caller that already holds a certificate for this domain passes its own paths
+    # in instead -- see the note in setup_coturn.sh about why certbot cannot run on
+    # such a host at all.
+    : "${cert_src:=/etc/letsencrypt/live/$lower_case_domain/fullchain.pem}"
+    : "${key_src:=/etc/letsencrypt/live/$lower_case_domain/privkey.pem}"
+
     # turnserver runs as $COTURN_USER, so it has to be able to read the key it is
     # pointed at. A plain `cp` out of /etc/letsencrypt leaves privkey.pem as
     # 0600 root:root; turnserver then logs
     #   "cannot start TLS and DTLS listeners because private key file is not set properly"
     # and carries on serving plain TURN on 3478 only. The service stays "active"
     # throughout, so nothing looks wrong until a client needs TURNS.
-    sudo install -o root -g "$COTURN_GROUP" -m 644 \
-        "/etc/letsencrypt/live/$lower_case_domain/fullchain.pem" \
-        "$COTURN_CERT_DIR/fullchain.pem" \
-        || error_exit "Failed to install fullchain.pem for Coturn"
-    sudo install -o root -g "$COTURN_GROUP" -m 640 \
-        "/etc/letsencrypt/live/$lower_case_domain/privkey.pem" \
-        "$COTURN_CERT_DIR/privkey.pem" \
-        || error_exit "Failed to install privkey.pem for Coturn"
+    install_cert_file "$cert_src" "$COTURN_CERT_DIR/fullchain.pem" 644 "fullchain.pem"
+    install_cert_file "$key_src" "$COTURN_CERT_DIR/privkey.pem" 640 "privkey.pem"
 
     # Assert it rather than assume it -- this is the exact condition that made TLS
     # silently unavailable.
@@ -134,20 +162,30 @@ EOF
 main() {
     local domain=""
     local machine_ip=""
+    local cert_src=""
+    local key_src=""
     # Parse arguments
     while [[ $# -gt 0 ]]; do
         case $1 in
-            --domain | -d) 
+            --domain | -d)
                 domain="$2"
                 shift 2
-                ;; 
-            --ip | -i) 
+                ;;
+            --ip | -i)
                 machine_ip="$2"
                 shift 2
-                ;; 
+                ;;
+            --cert | -c)
+                cert_src="$2"
+                shift 2
+                ;;
+            --key | -k)
+                key_src="$2"
+                shift 2
+                ;;
             *)
                 error_exit "Unknown argument: $1"
-                ;; 
+                ;;
         esac
     done
     if [ -z "$domain" ]; then
@@ -157,7 +195,7 @@ main() {
         error_exit "Machine IP is required. Use 'sudo ./coturn.sh --ip|-i <your_machine_ip>'"
     fi
 
-    setup_coturn "$domain" "$machine_ip"
+    setup_coturn "$domain" "$machine_ip" "$cert_src" "$key_src"
 }
 
 main "$@"
